@@ -18,21 +18,31 @@ pub fn encode(message: anytype, comptime size: usize) [size]u8 {
     if ((size * 8) < @bitSizeOf(T)) @compileError("Encoding buffer size too small");
 
     var buffer: u8 = 0;
-    const buffer_offset: u32 = 0;
-    var bytes_offset: u32 = 0;
+    var current_bit: u3 = 0;
+    var current_byte: usize = 0;
 
     inline for (t_info.Struct.fields) |field| {
+        const field_info = @typeInfo(field.type);
+        const field_length = switch (field_info) {
+            .Int => |int| if (int.signedness == .signed) @compileError("Fields must be unsigned ints") else int.bits,
+            else => @compileError("Fields must be unsigned ints"),
+        };
         const value = @field(message, field.name);
-        const field_size = @bitSizeOf(field.type);
-        const loops = @ceil(@as(f64, field_size) / 8.0);
-        for (0..loops) |i| {
-            const padded_byte: u16 = @as(u8, @truncate(value >> @truncate(i * 8)));
-            const to_add: u8 = @truncate(padded_byte << buffer_offset);
+        inline for (0..field_length) |i| {
+            const bit: u1 = @truncate(value >> i);
+            const to_add: u8 = @as(u8, bit) << current_bit;
             buffer += to_add;
-            bytes[bytes_offset] = buffer;
-            bytes_offset += 1;
-            buffer = 0;
+            current_bit = current_bit +% 1;
+            if (current_bit == 0) {
+                bytes[current_byte] = buffer;
+                current_byte += 1;
+                buffer = 0;
+            }
         }
+    }
+
+    if (current_byte < size) {
+        bytes[current_byte] = buffer;
     }
 
     return bytes;
@@ -42,11 +52,12 @@ test "encode" {
     const std = @import("std");
 
     const MyStruct = packed struct {
-        f1: u8,
-        f2: u16,
+        f1: u4,
+        f2: u6,
+        f3: u8,
     };
 
-    const my = MyStruct{ .f1 = 0b11101111, .f2 = 0b1111111100000000 };
+    const my = MyStruct{ .f1 = 0b0000, .f2 = 0b001111, .f3 = 0b11111111 };
 
     std.debug.print("{b}", .{encode(my, 3)});
 }
