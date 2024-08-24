@@ -1,7 +1,5 @@
 const std = @import("std");
-const root = @import("root.zig");
-
-const ArgError = error{ NoActionProvided, MalformedAction };
+const socket = @import("socket.zig");
 
 // Off
 const off_msg = [_]u8{ 0x31, 0x00, 0x00, 0x14, 0x02, 0x00, 0x00, 0x00, 0xd0, 0x73, 0xd5, 0x30, 0x34, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x66, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xa8, 0x0c, 0xc8, 0x00, 0x00, 0x00 };
@@ -13,20 +11,35 @@ pub fn main() !void {
     var args = std.process.args();
     const cont = args.skip();
     if (!cont) unreachable;
-    const action = args.next() orelse return ArgError.NoActionProvided;
-    if (!((action.len == 2) or (action.len == 3))) return ArgError.MalformedAction;
-    const msg = if ((action.len == 2) and (action[0] == 'o') and (action[1] == 'n'))
+    const action = args.next() orelse {
+        std.debug.print("No action provided\n", .{});
+        return;
+    };
+    if (!((action.len == 2) or (action.len == 3))) {
+        std.debug.print("Unknown action\n", .{});
+        return;
+    }
+    const msg = if (stringEquals(action, "on"))
         on_msg
-    else if ((action.len == 3) and (action[0] == 'o') and (action[1] == 'f') and (action[2] == 'f'))
+    else if (stringEquals(action, "off"))
         off_msg
-    else
-        return ArgError.MalformedAction;
+    else {
+        std.debug.print("Unknown action\n", .{});
+        return;
+    };
     try toggleLight(msg[0..]);
 }
 
 fn toggleLight(msg: []const u8) !void {
-    const client = try root.Client.init("192.168.1.252", 56700);
+    const client = try socket.Client.init("192.168.1.252", 56700);
     try client.connect();
-    const msg_size = try client.send(msg);
-    std.debug.print("Sent {}\n", .{msg_size});
+    _ = try client.send(msg);
+}
+
+fn stringEquals(one: []const u8, two: []const u8) bool {
+    if (one.len != two.len) return false;
+    for (one, two) |one_c, two_c| {
+        if (one_c != two_c) return false;
+    }
+    return true;
 }
