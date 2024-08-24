@@ -1,7 +1,9 @@
-pub const Header = struct {
+const message = @import("message.zig");
+
+pub const Header = packed struct {
     // Frame Header
     size: u16,
-    protocol: u12,
+    protocol: u12 = 1024,
     addressable: u1,
     tagged: u1,
     origin: u2,
@@ -17,4 +19,33 @@ pub const Header = struct {
     r3: u64 = 0, // Reserved
     type: u16,
     r4: u16 = 0, // Reserved
+};
+
+pub const set_power_size = 38;
+
+pub const SetPower = packed struct {
+    header: Header,
+    payload: packed struct {
+        level: u16,
+    },
+
+    pub fn init(target: u64, level: u16) SetPower {
+        return SetPower{
+            .header = Header{
+                .size = set_power_size,
+                .addressable = 1,
+                .tagged = 0,
+                .origin = 0,
+                .source = 2,
+                .target = target,
+                .res_required = 0,
+                .ack_required = 1,
+                .sequence = 1,
+                .type = 21,
+            },
+            .payload = .{
+                .level = level,
+            },
+        };
+    }
 };

@@ -48,16 +48,35 @@ pub fn encode(message: anytype, comptime size: usize) [size]u8 {
     return bytes;
 }
 
-test "encode" {
-    const std = @import("std");
+pub fn multiEncode(message: anytype, comptime size: usize) [size]u8 {
+    var bytes: [size]u8 = undefined;
 
-    const MyStruct = packed struct {
-        f1: u4,
-        f2: u6,
-        f3: u8,
-    };
+    const T = @TypeOf(message);
+    const t_info = @typeInfo(T);
 
-    const my = MyStruct{ .f1 = 0b0000, .f2 = 0b001111, .f3 = 0b11111111 };
+    switch (t_info) {
+        .Struct => |s| {
+            switch (s.layout) {
+                .@"packed" => {},
+                else => @compileError("Struct must be packed to encode"),
+            }
+        },
+        else => @compileError("Only structs can be encoded"),
+    }
 
-    std.debug.print("{b}", .{encode(my, 3)});
+    if ((size * 8) < @bitSizeOf(T)) @compileError("Encoding buffer size too small");
+
+    var current_byte: usize = 0;
+
+    inline for (t_info.Struct.fields) |field| {
+        const value = @field(message, field.name);
+        const value_size = @ceil(@as(f64, @bitSizeOf(field.type)) / 8.0);
+        const encoded = encode(value, value_size);
+        for (encoded) |b| {
+            bytes[current_byte] = b;
+            current_byte += 1;
+        }
+    }
+
+    return bytes;
 }
