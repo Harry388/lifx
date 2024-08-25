@@ -49,3 +49,26 @@ pub const SetPower = packed struct {
         };
     }
 };
+
+pub const get_power_size = 36;
+
+pub const GetPower = packed struct {
+    header: Header,
+
+    pub fn init(target: u64) GetPower {
+        return GetPower{
+            .header = Header{
+                .size = set_power_size,
+                .addressable = 1,
+                .tagged = 0,
+                .origin = 0,
+                .source = 2,
+                .target = target,
+                .res_required = 1,
+                .ack_required = 1,
+                .sequence = 1,
+                .type = 20,
+            },
+        };
+    }
+};
