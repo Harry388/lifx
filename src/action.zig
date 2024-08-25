@@ -41,8 +41,13 @@ pub const Action = enum {
 
                 _ = try client.send(&encoded);
 
-                const resp = try client.listen(1024);
-                std.debug.print("{b}", .{resp.buffer});
+                const resp = try client.listen(38);
+                if (resp.length == 38) {
+                    const toggle_msg = protocol.SetPower.init(target, if (resp.buffer[37] > 0) 0 else 65535);
+                    const toggle_encoded = message.multiEncode(toggle_msg, protocol.set_power_size);
+
+                    _ = try client.send(&toggle_encoded);
+                }
             },
         }
     }
