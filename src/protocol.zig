@@ -4,12 +4,12 @@ pub const Header = packed struct {
     // Frame Header
     size: u16,
     protocol: u12 = 1024,
-    addressable: u1,
-    tagged: u1,
+    addressable: u1 = 1,
+    tagged: u1, // (broadcast)
     origin: u2,
     source: u32,
     // Frame Address
-    target: u64,
+    target: u64, // (set to all 0 for broadcast)
     r1: u48 = 0, // Reserved
     res_required: u1,
     ack_required: u1,
@@ -33,7 +33,6 @@ pub const SetPower = packed struct {
         return SetPower{
             .header = Header{
                 .size = set_power_size,
-                .addressable = 1,
                 .tagged = 0,
                 .origin = 0,
                 .source = 2,
@@ -59,7 +58,6 @@ pub const GetPower = packed struct {
         return GetPower{
             .header = Header{
                 .size = get_power_size,
-                .addressable = 1,
                 .tagged = 0,
                 .origin = 0,
                 .source = 2,
