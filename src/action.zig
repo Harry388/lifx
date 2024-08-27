@@ -1,7 +1,6 @@
 const std = @import("std");
 const socket = @import("socket.zig");
 const protocol = @import("protocol.zig");
-const message = @import("message.zig");
 const util = @import("util.zig");
 
 pub const Action = enum {
@@ -25,26 +24,26 @@ pub const Action = enum {
         try client.connect();
         switch (self.*) {
             .on, .off => {
-                const msg = protocol.SetPower.init(target, switch (self.*) {
+                const msg = protocol.Message{ .setPower = protocol.SetPower.init(target, switch (self.*) {
                     .on => 65535,
                     .off => 0,
                     else => unreachable,
-                });
+                }) };
 
-                const encoded = message.multiEncode(msg, protocol.set_power_size);
+                const encoded = msg.encode(protocol.set_power_size);
 
                 _ = try client.send(&encoded);
             },
             .toggle => {
-                const msg = protocol.GetPower.init(target);
-                const encoded = message.encode(msg.header, protocol.get_power_size);
+                const msg = protocol.Message{ .getPower = protocol.GetPower.init(target) };
+                const encoded = msg.encode(protocol.get_power_size);
 
                 _ = try client.send(&encoded);
 
                 const resp = try client.listen(38);
                 if (resp.length == 38) {
-                    const toggle_msg = protocol.SetPower.init(target, if (resp.buffer[37] > 0) 0 else 65535);
-                    const toggle_encoded = message.multiEncode(toggle_msg, protocol.set_power_size);
+                    const toggle_msg = protocol.Message{ .setPower = protocol.SetPower.init(target, if (resp.buffer[37] > 0) 0 else 65535) };
+                    const toggle_encoded = toggle_msg.encode(protocol.set_power_size);
 
                     _ = try client.send(&toggle_encoded);
                 }

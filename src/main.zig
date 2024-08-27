@@ -1,5 +1,4 @@
 const std = @import("std");
-const message = @import("message.zig");
 const Action = @import("action.zig").Action;
 
 pub fn main() !void {

@@ -1,4 +1,4 @@
-const message = @import("message.zig");
+const encoder = @import("encoder.zig");
 
 pub const Header = packed struct {
     // Frame Header
@@ -19,6 +19,44 @@ pub const Header = packed struct {
     r3: u64 = 0, // Reserved
     type: u16,
     r4: u16 = 0, // Reserved
+};
+
+pub const Message = union(enum) {
+    setPower: SetPower,
+    getPower: GetPower,
+
+    pub fn encode(self: *const Message, comptime messageSize: usize) [messageSize]u8 {
+        var bytes: [messageSize]u8 = undefined;
+        switch (self.*) {
+            inline else => |case| {
+                const T = @TypeOf(case);
+                const t_info = @typeInfo(T);
+
+                switch (t_info) {
+                    .Struct => |s| {
+                        switch (s.layout) {
+                            .@"packed" => {},
+                            else => @compileError("Struct must be packed to encode"),
+                        }
+                    },
+                    else => @compileError("Only structs can be encoded"),
+                }
+
+                var current_byte: usize = 0;
+
+                inline for (t_info.Struct.fields) |field| {
+                    const value = @field(case, field.name);
+                    const value_size = @ceil(@as(f64, @bitSizeOf(field.type)) / 8.0);
+                    const encoded = encoder.encode(value, value_size);
+                    for (encoded) |b| {
+                        bytes[current_byte] = b;
+                        current_byte += 1;
+                    }
+                }
+            },
+        }
+        return bytes;
+    }
 };
 
 pub const set_power_size = 38;
