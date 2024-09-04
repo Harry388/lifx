@@ -6,36 +6,32 @@ pub fn main() !void {
     const cont = args.skip();
     if (!cont) unreachable;
     const arg_one = args.next() orelse {
-        std.debug.print("Identifier not provided\n", .{});
+        std.debug.print("IP not provided\n", .{});
         return;
     };
     const arg_two = args.next() orelse {
+        std.debug.print("MAC Address not provided\n", .{});
+        return;
+    };
+    const arg_three = args.next() orelse {
         std.debug.print("Action not provided\n", .{});
         return;
     };
-    const ip = genIP(arg_one) orelse {
-        std.debug.print("Identifier must be 3 characters\n", .{});
+    const mac = getMAC(arg_two) catch {
+        std.debug.print("MAC Address invalid\n", .{});
         return;
     };
-    const action: Action = Action.fromString(arg_two) orelse {
+    const action: Action = Action.fromString(arg_three) orelse {
         std.debug.print("Unknown action\n", .{});
         return;
     };
-    try action.enact(&ip, 0x453430d573d0);
+    try action.enact(arg_one, mac);
 }
 
-fn genIP(end: []const u8) ?[13]u8 {
-    if (end.len != 3) return null;
-    var ip: [13]u8 = undefined;
-    const start = "192.168.1.";
-    var i: usize = 0;
-    for (start) |b| {
-        ip[i] = b;
-        i += 1;
-    }
-    for (end) |b| {
-        ip[i] = b;
-        i += 1;
-    }
-    return ip;
+fn getMAC(arg: []const u8) !u64 {
+    var raw_mac = try std.fmt.parseInt(u64, arg, 16);
+    raw_mac = raw_mac << 16;
+    var mac_bytes = std.mem.toBytes(raw_mac);
+    std.mem.reverse(u8, @ptrCast(&mac_bytes));
+    return std.mem.bytesToValue(u64, &mac_bytes);
 }
