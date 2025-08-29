@@ -6,7 +6,7 @@ pub fn encode(message: anytype, comptime size: usize) [size]u8 {
     const t_info = @typeInfo(T);
 
     switch (t_info) {
-        .Struct => |s| {
+        .@"struct" => |s| {
             switch (s.layout) {
                 .@"packed" => {},
                 else => @compileError("Struct must be packed to encode"),
@@ -21,10 +21,10 @@ pub fn encode(message: anytype, comptime size: usize) [size]u8 {
     var current_bit: u3 = 0;
     var current_byte: usize = 0;
 
-    inline for (t_info.Struct.fields) |field| {
+    inline for (t_info.@"struct".fields) |field| {
         const field_info = @typeInfo(field.type);
         const field_length = switch (field_info) {
-            .Int => |int| if (int.signedness == .signed) @compileError("Fields must be unsigned ints") else int.bits,
+            .int => |int| if (int.signedness == .signed) @compileError("Fields must be unsigned ints") else int.bits,
             else => @compileError("Fields must be unsigned ints"),
         };
         const value = @field(message, field.name);

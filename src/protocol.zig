@@ -33,7 +33,7 @@ pub const Message = union(enum) {
                 const t_info = @typeInfo(T);
 
                 switch (t_info) {
-                    .Struct => |s| {
+                    .@"struct" => |s| {
                         switch (s.layout) {
                             .@"packed" => {},
                             else => @compileError("Struct must be packed to encode"),
@@ -44,7 +44,7 @@ pub const Message = union(enum) {
 
                 var current_byte: usize = 0;
 
-                inline for (t_info.Struct.fields) |field| {
+                inline for (t_info.@"struct".fields) |field| {
                     const value = @field(case, field.name);
                     const value_size = @ceil(@as(f64, @bitSizeOf(field.type)) / 8.0);
                     const encoded = encoder.encode(value, value_size);
